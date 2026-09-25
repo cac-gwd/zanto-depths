@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111c22"><title>残灯の深淵｜更新</title>
+<style>body{margin:0;background:#101a20;color:#e9eee8;font:16px/1.8 -apple-system,sans-serif;padding:32px 20px}main{max-width:440px;margin:auto}h1{font-size:25px;color:#e6bc75}button,a{font:inherit}button{width:100%;min-height:52px;border:0;border-radius:8px;background:#e6bc75;color:#101a20;padding:12px}button:disabled{opacity:.6}a{color:#e6bc75}#status{min-height:60px}</style>
+<main><h1>残灯の深淵を更新</h1><p>ゲームの最新版を取得し、古い版から切り替えます。セーブデータは削除しません。</p><p>プレイ中の別タブがあれば、先に閉じてください。</p><button id="update">最新版を取得して開く</button><p id="status" role="status"></p><a href="./">ゲームに戻る</a><p>Safariとホーム画面アプリで保存領域が分かれている場合、Safariでの更新がホーム画面アプリには反映されないことがあります。</p></main>
+<script>
+const button=document.getElementById('update'),status=document.getElementById('status');
+button.onclick=async()=>{
+button.disabled=true;status.textContent='最新版を確認しています…';
+try{
+if(!('serviceWorker'in navigator))throw Error('unsupported');
+const registration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+await registration.update();
+const worker=registration.waiting||registration.installing;
+if(worker){
+await new Promise((resolve,reject)=>{
+const timer=setTimeout(()=>{cleanup();reject(Error('timeout'))},30000);
+function cleanup(){clearTimeout(timer);worker.removeEventListener('statechange',check)}
+function check(){
+if(worker.state==='installed'){status.textContent='取得完了。新しい版へ切り替えています…';worker.postMessage({type:'ZANTO_ACTIVATE_UPDATE'})}
+if(worker.state==='activated'){cleanup();resolve()}
+if(worker.state==='redundant'){cleanup();reject(Error('install failed'))}
+}
+worker.addEventListener('statechange',check);check();
+});
+}
+status.textContent='更新完了。ゲームを開きます。';location.replace('./');
+}catch{status.textContent='更新できませんでした。通信を確認して、もう一度お試しください。セーブデータは変更していません。';button.disabled=false}
+};
+</script></html>

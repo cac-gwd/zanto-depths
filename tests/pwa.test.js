@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{readFile,access}from'node:fs/promises';import vm from'node:vm';
+test('offline assets include all modules, bypass HTTP cache, and never delete previous game cache',async()=>{
+ const root=new URL('../',import.meta.url),manifest=JSON.parse(await readFile(new URL('manifest.webmanifest',root)));assert.equal(manifest.display,'standalone');assert.equal(manifest.scope,'./');
+ const listeners={},scope='https://example.github.io/zanto-depths/',store=new Map,deleted=[];let claimed=false;const cache={async addAll(requests){for(const req of requests){assert.equal(req.cache,'reload');const file='./'+req.url.slice(scope.length);await access(new URL(file==='./'?'index.html':file,root));store.set(req.url,file)}},async match(req){return store.get(new URL(typeof req==='string'?req:req.url,scope).href)}};
+ const context={Request,URL,self:{registration:{scope},clients:{claim:async()=>{claimed=true}},addEventListener:(name,fn)=>listeners[name]=fn},caches:{open:async()=>cache,keys:async()=>['akari-https://example.github.io/akari/v1','zanto-depths-'+scope+'old'],delete:async k=>deleted.push(k)},fetch:async()=>{throw Error('offline')}};
+ vm.runInNewContext(await readFile(new URL('sw.js',root),'utf8'),context);let pending;listeners.install({waitUntil:p=>pending=p});await pending;listeners.activate({waitUntil:p=>pending=p});await pending;assert.ok(claimed);assert.deepEqual(deleted,['zanto-depths-'+scope+'old']);
+ for(const file of ['./','./app.js','./engine.js','./data.js','./dungeon.js','./style.css',...manifest.icons.map(i=>i.src)]){listeners.fetch({request:{method:'GET',url:new URL(file,scope).href,mode:'navigate'},respondWith:p=>pending=p});assert.ok(await pending)}
+ const app=await readFile(new URL('app.js',root),'utf8');assert.ok(app.includes("KEY='zanto-depths-save-v1'"));assert.ok(!app.includes("KEY='akari-save"));
+});
