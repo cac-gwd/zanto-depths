@@ -21,7 +21,15 @@ export function los(s,a,b){
  while(x!==b.x||y!==b.y){const oldX=x,oldY=y,e=2*err;if(e>-dy){err-=dy;x+=sx}if(e<dx){err+=dx;y+=sy}if(x!==oldX&&y!==oldY&&(!floorAt(s,x,oldY)||!floorAt(s,oldX,y)))return false;if(x===b.x&&y===b.y)return true;if(!floorAt(s,x,y)||s.fields.some(f=>f.kind==='smoke'&&f.x===x&&f.y===y))return false}return true;
 }
 export function visible(s){const result=new Set;for(let y=Math.max(0,s.p.y-6);y<=Math.min(SIZE-1,s.p.y+6);y++)for(let x=Math.max(0,s.p.x-6);x<=Math.min(SIZE-1,s.p.x+6);x++)if(dist(s.p,{x,y})<=6&&los(s,s.p,{x,y}))result.add(idx(x,y));return result}
-export function reveal(s){for(const k of visible(s))s.seen[k]=true;for(const e of s.enemies)if(visibleEnemy(s,e)&&!s.known.includes(e.type))s.known.push(e.type)}
+// Terrain outlines are more generous than combat sight: show walls bordering
+// visible floor, without revealing floor, enemies or projectiles beyond corners.
+export function terrainVisible(s){const result=visible(s);for(const k of [...result])if(s.map[k]){const x=k%SIZE,y=Math.floor(k/SIZE);for(const[dx,dy]of dirs){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<SIZE&&ny<SIZE&&dist(s.p,{x:nx,y:ny})<=6&&!s.map[idx(nx,ny)])result.add(idx(nx,ny))}}return result}
+export function reveal(s){
+ for(const k of terrainVisible(s))s.seen[k]=true;
+ // Backfill wall outlines around remembered floor, including pre-update saves.
+ for(let k=0;k<s.map.length;k++)if(s.seen[k]&&s.map[k]){const x=k%SIZE,y=Math.floor(k/SIZE);for(const[dx,dy]of dirs){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<SIZE&&ny<SIZE&&!s.map[idx(nx,ny)])s.seen[idx(nx,ny)]=true}}
+ for(const e of s.enemies)if(visibleEnemy(s,e)&&!s.known.includes(e.type))s.known.push(e.type);
+}
 export function visibleEnemy(s,e){return dist(s.p,e)<=6&&los(s,s.p,e)}
 function circle(s,p,r){const cells=[];for(let y=p.y-r;y<=p.y+r;y++)for(let x=p.x-r;x<=p.x+r;x++)if(floorAt(s,x,y)&&los(s,p,{x,y}))cells.push({x,y});return cells}
 function ray(s,a,b,length=6){const dx=Math.sign(b.x-a.x),dy=Math.sign(b.y-a.y);if(!dx&&!dy)return[];if(a.x!==b.x&&a.y!==b.y&&Math.abs(a.x-b.x)!==Math.abs(a.y-b.y))return[];const cells=[];let p={x:a.x,y:a.y};for(let n=0;n<length;n++){if(!stepAllowed(s,p,dx,dy))break;p={x:p.x+dx,y:p.y+dy};cells.push(p)}return cells}

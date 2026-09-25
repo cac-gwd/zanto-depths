@@ -1,4 +1,4 @@
-import {createGame,act,visible,visibleEnemy,floorAt,los,dist,idx,SIZE,itemName,validSave} from './engine.js';
+import {createGame,act,visible,terrainVisible,reveal,visibleEnemy,floorAt,los,dist,idx,SIZE,itemName,validSave} from './engine.js';
 import {VERSION,ENEMIES,ITEMS,WEAPONS,CHARMS,SKILLS,STATUS,phase} from './data.js';
 import {LAYOUTS} from './dungeon.js';
 const $=id=>document.getElementById(id),KEY='zanto-depths-save-v1',RECORD='zanto-depths-record-v1';
@@ -12,11 +12,19 @@ function close(){$('modal').close()}
 const canvas=$('map'),ctx=canvas.getContext('2d');let camera;
 function draw(){
  const width=canvas.clientWidth,height=canvas.clientHeight,ratio=Math.min(devicePixelRatio||1,3);canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.fillStyle='#0b1115';ctx.fillRect(0,0,width,height);
- const cols=overview?SIZE:13,rows=overview?SIZE:11,tile=Math.min(width/cols,height/rows),left=overview?0:state.p.x-6,top=overview?0:state.p.y-5,ox=(width-cols*tile)/2,oy=(height-rows*tile)/2,vis=visible(state);
+ const cols=overview?SIZE:13,rows=overview?SIZE:11,tile=Math.min(width/cols,height/rows),left=overview?0:state.p.x-6,top=overview?0:state.p.y-5,ox=(width-cols*tile)/2,oy=(height-rows*tile)/2,vis=visible(state),terrain=terrainVisible(state);
  camera={left,top,tile,ox,oy};const on=(x,y)=>x>=left&&x<left+cols&&y>=top&&y<top+rows;
  function rect(x,y,color,inset=1){if(!on(x,y))return;ctx.fillStyle=color;ctx.fillRect(ox+(x-left)*tile+inset,oy+(y-top)*tile+inset,tile-inset*2,tile-inset*2)}
  function glyph(x,y,char,color,scale=.65){if(!on(x,y))return;ctx.fillStyle=color;ctx.font=`${Math.max(7,Math.floor(tile*scale))}px -apple-system,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(char,ox+(x-left+.5)*tile,oy+(y-top+.53)*tile)}
- for(let y=Math.max(0,top);y<Math.min(SIZE,top+rows);y++)for(let x=Math.max(0,left);x<Math.min(SIZE,left+cols);x++){const k=idx(x,y);if(!state.seen[k])continue;const seen=vis.has(k);rect(x,y,state.map[k]?(seen?((x+y)%2?'#303d40':'#2c383d'):'#18242b'):(seen?'#485253':'#243139'));if(!state.map[k]&&seen){ctx.fillStyle='#5b615a';ctx.fillRect(ox+(x-left)*tile+1,oy+(y-top)*tile+1,tile-2,2)}}
+ for(let y=Math.max(0,top);y<Math.min(SIZE,top+rows);y++)for(let x=Math.max(0,left);x<Math.min(SIZE,left+cols);x++){
+  const k=idx(x,y);if(!state.seen[k])continue;const lit=terrain.has(k),wall=!state.map[k];
+  rect(x,y,wall?(lit?'#727c7d':'#56646b'):(lit?((x+y)%2?'#303d40':'#2c383d'):'#23343f'),overview?0:1);
+  if(wall){const px=ox+(x-left)*tile,py=oy+(y-top)*tile;ctx.strokeStyle=lit?'#d0d7c8':'#9aadb4';ctx.lineWidth=overview?1:1.5;ctx.beginPath();
+   for(const[dx,dy]of [[0,-1],[1,0],[0,1],[-1,0]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=SIZE||ny>=SIZE||!state.seen[idx(nx,ny)]||!state.map[idx(nx,ny)])continue;
+    if(dy===-1){ctx.moveTo(px,py+1);ctx.lineTo(px+tile,py+1)}if(dy===1){ctx.moveTo(px,py+tile-1);ctx.lineTo(px+tile,py+tile-1)}if(dx===-1){ctx.moveTo(px+1,py);ctx.lineTo(px+1,py+tile)}if(dx===1){ctx.moveTo(px+tile-1,py);ctx.lineTo(px+tile-1,py+tile)}
+   }ctx.stroke();
+  }
+ }
  for(const f of state.fields)if(vis.has(idx(f.x,f.y))){rect(f.x,f.y,({fire:'#9d4f3588',poison:'#5c814b99',smoke:'#939a9b66',ice:'#81b8d8aa'})[f.kind]);glyph(f.x,f.y,({fire:'炎',poison:'毒',smoke:'煙',ice:'氷'})[f.kind],'#d8d9c8',.45)}
  // Support influence is separate from impending damage.
  for(const e of state.enemies)if(e.type==='drummer'&&visibleEnemy(state,e)&&!e.status.silence)for(let y=e.y-3;y<=e.y+3;y++)for(let x=e.x-3;x<=e.x+3;x++)if(vis.has(idx(x,y))&&floorAt(state,x,y))rect(x,y,'#c2a25822');
@@ -32,7 +40,7 @@ function draw(){
  canvas.setAttribute('aria-label',`地下${state.floor}階。生命${state.p.hp}。見える敵${state.enemies.filter(e=>visibleEnemy(state,e)).length}体。タップで調べる。`);
 }
 function render(){
- const p=state.p;$('floor').innerHTML=String(state.floor).padStart(2,'0')+' <span>/ 20</span>';$('hp').textContent=`${p.hp} / ${p.maxHp}`;$('hpbar').style.width=p.hp/p.maxHp*100+'%';$('hpbar').style.background=p.hp/p.maxHp<.3?'#f39383':'#9fc9b5';$('food').textContent='満腹 '+p.food+'%';$('loadout').textContent=`${WEAPONS[p.weapon].name}+${p.power} / 守${p.armor}`;$('ammo').textContent='矢 '+p.ammo;$('area').textContent=phase(state.floor)+' · '+(LAYOUTS[state.layout]||'主の間');$('turn').textContent=state.turn+' 手';$('bagcount').textContent=state.bag.length+'/16';$('points').textContent=p.points?'＋'+p.points:'';$('skills').classList.toggle('accent',p.points>0);
+ reveal(state);const p=state.p;$('floor').innerHTML=String(state.floor).padStart(2,'0')+' <span>/ 20</span>';$('hp').textContent=`${p.hp} / ${p.maxHp}`;$('hpbar').style.width=p.hp/p.maxHp*100+'%';$('hpbar').style.background=p.hp/p.maxHp<.3?'#f39383':'#9fc9b5';$('food').textContent='満腹 '+p.food+'%';$('loadout').textContent=`${WEAPONS[p.weapon].name}+${p.power} / 守${p.armor}`;$('ammo').textContent='矢 '+p.ammo;$('area').textContent=phase(state.floor)+' · '+(LAYOUTS[state.layout]||'主の間');$('turn').textContent=state.turn+' 手';$('bagcount').textContent=state.bag.length+'/16';$('points').textContent=p.points?'＋'+p.points:'';$('skills').classList.toggle('accent',p.points>0);
  $('stairs').textContent=state.floor===20?'✦ 灯炉を鎮める':'▤ 階段を降りる';$('stairs').disabled=state.status!=='playing'||dist(p,state.stairs)!==0||state.enemies.some(e=>e.boss);
  const ground=state.items.find(g=>g.x===p.x&&g.y===p.y);$('ground').hidden=!ground;$('ground').textContent=ground?'足元：'+itemName(ground.item)+(state.bag.length>=16?' / 袋で交換':' / 待つで拾う'):'';
  $('status-row').replaceChildren();for(const[key,turns]of Object.entries(p.status))if(turns>0){const b=document.createElement('button');b.textContent=(STATUS[key]?.split('：')[0]||key)+' '+turns;b.onclick=()=>modal(`<h2>現在の状態</h2><p>${esc(STATUS[key]||key)}</p><p>残り ${turns} 手</p>`);$('status-row').append(b)}

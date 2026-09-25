@@ -1,4 +1,4 @@
-export const VERSION='1.0.0';
+export const VERSION='1.0.1';
 // Damage is deliberately narrow and readable; abilities, not inflated stats, drive danger.
 const enemy=(name,glyph,floor,hp,atk,role,tip,color='#d89584')=>({name,glyph,floor,hp,atk,role,tip,color});
 export const ENEMIES={

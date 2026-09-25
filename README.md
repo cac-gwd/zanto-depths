@@ -1,6 +1,6 @@
 # 残灯の深淵
 
-**[ゲームを遊ぶ](https://cac-gwd.github.io/zanto-depths/)** · **v1.0.0** · [更新専用ページ](https://cac-gwd.github.io/zanto-depths/update.html)
+**[ゲームを遊ぶ](https://cac-gwd.github.io/zanto-depths/)** · **v1.0.1** · [更新専用ページ](https://cac-gwd.github.io/zanto-depths/update.html)
 
 敵を知り、退路を選び、最後の灯を守る。20階の戦術ローグライクです。iPhoneの縦画面・タッチ操作を中心に、PCでも遊べます。
 
@@ -75,3 +75,7 @@ npm test
 部屋・迷路・洞窟の生成コードは、前作の独自実装を別ファイルとしてコピーし、新作で独立管理しています。旧ゲーム側のファイルを実行時に参照しません。
 
 参考資料：[BSPによる部屋生成](https://chizaruu.github.io/roguebasin/basic_bsp_dungeon_generation)、[セルオートマトンによる洞窟生成](https://www.roguebasin.com/index.php/Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels)。既存作品のキャラクター・画像・音楽は使用していません。
+
+## v1.0.1：地形の読みやすさ
+
+見える床の周囲の壁まで表示し、通路の幅と曲がり角を読み取りやすくしました。探索済みの壁には明るい輪郭を付け、全体図にも残します。旧セーブの探索済み床からも壁の輪郭を補います。敵の視認・攻撃の射線は変更していません。

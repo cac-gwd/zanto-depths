@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createGame,visible,terrainVisible,reveal,los,visibleEnemy,idx,SIZE} from '../engine.js';
+function corridor(){const s=createGame(42);s.map.fill(0);s.seen.fill(false);s.fields=[];s.enemies=[];for(let x=4;x<25;x++)s.map[idx(x,15)]=1;s.p.x=10;s.p.y=15;return s}
+test('one tile ahead side walls are visible even when combat LOS rejects diagonal corner',()=>{const s=corridor();assert.equal(los(s,s.p,{x:11,y:14}),false);assert.ok(terrainVisible(s).has(idx(11,14)));assert.ok(terrainVisible(s).has(idx(11,16)));reveal(s);assert.ok(s.seen[idx(11,14)])});
+test('remembered wall outlines survive moving away and JSON save/load',()=>{const s=corridor();reveal(s);s.p.x=24;reveal(s);assert.equal(terrainVisible(s).has(idx(11,14)),false);assert.ok(s.seen[idx(11,14)]);assert.ok(JSON.parse(JSON.stringify(s)).seen[idx(11,14)])});
+test('pre-update saves backfill walls around remembered floors without revealing hidden rooms',()=>{const s=corridor();s.seen[idx(7,15)]=true;s.p.x=24;s.map[idx(7,13)]=1;reveal(s);assert.ok(s.seen[idx(7,14)]);assert.equal(s.seen[idx(7,13)],false)});
+test('terrain visibility never expands combat sight or exposes floors behind walls',()=>{const s=corridor();s.map[idx(11,13)]=1;const before=[...visible(s)];terrainVisible(s);reveal(s);assert.deepEqual([...visible(s)],before);assert.equal(visibleEnemy(s,{x:11,y:13}),false);assert.equal(s.seen[idx(11,13)],false)});
