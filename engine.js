@@ -25,6 +25,7 @@ export function visible(s){const result=new Set;for(let y=Math.max(0,s.p.y-6);y<
 // visible floor, without revealing floor, enemies or projectiles beyond corners.
 export function terrainVisible(s){const result=visible(s);for(const k of [...result])if(s.map[k]){const x=k%SIZE,y=Math.floor(k/SIZE);for(const[dx,dy]of dirs){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<SIZE&&ny<SIZE&&dist(s.p,{x:nx,y:ny})<=6&&!s.map[idx(nx,ny)])result.add(idx(nx,ny))}}return result}
 export function reveal(s){
+ const itemSight=visible(s);for(const g of s.items)if(itemSight.has(idx(g.x,g.y)))g.discovered=true;
  for(const k of terrainVisible(s))s.seen[k]=true;
  // Backfill wall outlines around remembered floor, including pre-update saves.
  for(let k=0;k<s.map.length;k++)if(s.seen[k]&&s.map[k]){const x=k%SIZE,y=Math.floor(k/SIZE);for(const[dx,dy]of dirs){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<SIZE&&ny<SIZE&&!s.map[idx(nx,ny)])s.seen[idx(nx,ny)]=true}}
