@@ -3,3 +3,5 @@
 @media(max-width:599px) and (max-height:650px){#map{height:130px}.log{height:34px}.threats{min-height:34px}header{margin-bottom:5px}.game{padding-top:max(5px,env(safe-area-inset-top))}}
 
 #loadout{font-size:11px;text-align:left;color:var(--gold);padding:4px 6px;min-height:44px;flex:1;line-height:1.5}.statline.subtle{align-items:center}.equipment-summary{border:1px solid #72634d;background:#272c2d;border-radius:8px;padding:10px 12px;margin:12px 0}.equipment-summary h3{margin:0 0 8px;color:var(--gold)}.equipment-summary p{font-size:12px;margin:7px 0}.equipment-values{color:var(--gold);font-weight:600}.equipment-compare{background:#111c22;border-radius:6px;padding:8px;margin:8px 0}.comparison-row{display:flex;justify-content:space-between;gap:6px;font-size:12px;flex-wrap:wrap}.comparison-row strong{font-size:12px}.better{color:#aee3be}.worse{color:#ffb0a0}.equipment-compare p{font-size:12px;overflow-wrap:anywhere}
+
+button.ground{pointer-events:auto;min-height:44px;text-align:left;width:calc(100% - 16px)}

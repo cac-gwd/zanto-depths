@@ -151,10 +151,13 @@ export function act(s,action){
   const spear=p.weapon==='spear'&&dist(p,e)<=2&&ray(s,p,e,2).some(t=>t.x===e.x&&t.y===e.y);
   if(spear)melee(s,e);else{if(!p.ammo){note(s,'矢がない。');return false}p.ammo--;const damage=6+p.skills.ranged*2+(p.weapon==='bow'?3+p.power:0);if(e.type==='mirror'&&!e.status.silence&&s.turn%4<2)hurtPlayer(s,damage,'鏡殻の反射');else{note(s,`${ENEMIES[e.type].name}へ矢：${damage}ダメージ。`);hurtEnemy(s,e,damage)}}s.lastAction='射撃';
  }else if(action.type==='use'){
-  if(!Number.isInteger(action.index)||!s.bag[action.index])return false;const item=s.bag[action.index],def=ITEMS[item.type];
+  const ground=action.source==='ground'?s.items.find(g=>g.x===p.x&&g.y===p.y):null;
+  if(action.source==='ground'?!ground:(!Number.isInteger(action.index)||!s.bag[action.index]))return false;
+  const item=ground?ground.item:s.bag[action.index],def=ITEMS[item.type];
+  const remove=()=>{if(ground)s.items=s.items.filter(g=>g!==ground);else s.bag.splice(action.index,1)};
   if(p.status.seal){note(s,'道具は封じられている。移動・攻撃で切り抜けよう。');return false}
   if(['weapon','armor','charm'].includes(item.type)){
-   let old;if(item.type==='weapon'){old=makeItem('weapon',{weapon:p.weapon,power:p.power});p.weapon=item.weapon;p.power=item.power}else if(item.type==='armor'){old=makeItem('armor',{power:p.armor});p.armor=item.power}else{old=p.charm==='none'?null:makeItem('charm',{charm:p.charm});p.charm=item.charm}if(old)s.bag[action.index]=old;else s.bag.splice(action.index,1);note(s,`${itemName(item)}を装備。`);
+   let old;if(item.type==='weapon'){old=makeItem('weapon',{weapon:p.weapon,power:p.power});p.weapon=item.weapon;p.power=item.power}else if(item.type==='armor'){old=makeItem('armor',{power:p.armor});p.armor=item.power}else{old=p.charm==='none'?null:makeItem('charm',{charm:p.charm});p.charm=item.charm}if(old){if(ground)ground.item=old;else s.bag[action.index]=old}else remove();note(s,`${itemName(item)}を装備。`);
   }else{
    const target=action.target,e=target&&s.enemies.find(e=>e.x===target.x&&e.y===target.y);
    if(def.kind!=='self'&&!checkTarget(s,target,def.range,def.kind==='enemy')){note(s,'射程・射線の中の対象を選ぼう。');return false}
@@ -179,7 +182,7 @@ export function act(s,action){
    if(item.type==='fury')status(p,'fury',7);
    if(item.type==='scout'){s.seen.fill(true);status(p,'scout',9)}
    if(item.type==='detect')for(const t of s.traps)t.revealed=true;
-   if(item.charges){item.used=(item.used||0)+1;if(p.skills.tools<2||item.used%2===0)item.charges--;if(item.charges===0)s.bag.splice(action.index,1)}else s.bag.splice(action.index,1);
+   if(item.charges){item.used=(item.used||0)+1;if(p.skills.tools<2||item.used%2===0)item.charges--;if(item.charges===0)remove()}else remove();
   }
   s.lastAction='道具使用';
  }else return false;
